@@ -1,19 +1,32 @@
 // Configurar la URL del WebApp de Apps Script aquí
 const API_URL = 'https://script.google.com/macros/s/AKfycbzNVc-5NU3DkeClA9Y8M_pVRYJd3s2gpfVFgQ1OjWSH3BHL6ikvNL7Y4UBQnr8TQowx8Q/exec';
 
-async function api(action, payload = {}) {
+async function api(action, payload = {}, timeout = 30000) {
   const params = new URLSearchParams({ action, ...payload });
   const url = `${API_URL}?${params.toString()}`;
-  const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Error en la API: ${res.status} - ${errText}`);
+  
+  // Crear promesa con timeout
+  const fetchPromise = fetch(url, { method: 'GET', cache: 'no-store' });
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error(`Timeout: La operación tardó más de ${timeout/1000}s`)), timeout)
+  );
+  
+  try {
+    const res = await Promise.race([fetchPromise, timeoutPromise]);
+    
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Error en la API: ${res.status} - ${errText}`);
+    }
+    const data = await res.json();
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    return data;
+  } catch (err) {
+    console.error(`[API] Error en ${action}:`, err);
+    throw err;
   }
-  const data = await res.json();
-  if (data.error) {
-    throw new Error(data.error);
-  }
-  return data;
 }
 
 function $(sel, root=document){ return root.querySelector(sel); }
@@ -46,6 +59,46 @@ async function cargarCatalogos(){
     if (selEstado) selEstado.innerHTML = `<option value="">Todos los estados</option>` + estados.map(v=>`<option value="${v}">${v}</option>`).join('');
   } catch(err){
     console.error('Error cargando catálogos:', err);
+  }
+}
+
+async function actualizarSoloEstados(){
+  const selEstado = document.getElementById('selEstado');
+  if (!selEstado) return;
+  
+  // Guardar el valor actual del filtro de estado
+  const estadoActual = selEstado.value.trim();
+  
+  // Verificar si hay otros filtros activos (categoría o caja)
+  const selCategoria = document.getElementById('selCategoria');
+  const selCaja = document.getElementById('selCaja');
+  const cat = selCategoria?.value.trim() || '';
+  const caja = selCaja?.value.trim() || '';
+  const hayOtrosFiltros = cat || caja;
+  
+  try {
+    let estados = [];
+    
+    if (hayOtrosFiltros) {
+      // Si hay filtros de categoría o caja, obtener estados filtrados
+      const data = await api('catalogos_filtrados', { cat, caja, estado: '' });
+      estados = data.estados || [];
+    } else {
+      // Si no hay filtros, obtener todos los estados
+      const data = await api('catalogos');
+      estados = data.estados || [];
+    }
+    
+    // Actualizar solo el select de estados
+    selEstado.innerHTML = `<option value="">Todos los estados</option>` + 
+      estados.map(v=>`<option value="${v}">${v}</option>`).join('');
+    
+    // Restaurar el valor si sigue disponible
+    if (estadoActual && estados.includes(estadoActual)) {
+      selEstado.value = estadoActual;
+    }
+  } catch(err){
+    console.error('Error actualizando estados:', err);
   }
 }
 
@@ -173,7 +226,11 @@ async function cargarLibros(){
   document.body.style.cursor = 'wait';
   
   try {
-    tabla.innerHTML = '<p style="text-align:center;padding:2rem;">Cargando...</p>';
+    tabla.innerHTML = `<div class="loading-message">
+      <div class="loading-message-title">⏳ Cargando libros...</div>
+      <div class="loading-message-subtitle">Esto puede tardar unos segundos</div>
+    </div>`;
+    
     const data = await api('search_libros', { q, cat, caja, estado });
     __currentItems = data.items || [];
     
@@ -262,17 +319,16 @@ function renderTabla(items){
   actualizarEstadisticas(items);
   
   const el = $('#tabla');
+  if (!el) return;
+  
   const rows = items.map(x=> {
     const estado = x.estado || x.estadoprestado || x['estado prestado'] || '';
     const estadoNorm = String(estado).toLowerCase().trim();
     
-    // Si es "disponible" → verde
-    // Si es "prestado" o tiene un nombre de usuario (no vacío y no "disponible") → rojo
     let estadoClass = '';
     if (estadoNorm === 'disponible') {
       estadoClass = 'estado-disponible';
     } else if (estado && estadoNorm !== 'disponible') {
-      // Cualquier otro valor (prestado, nombre de usuario, etc.) → rojo
       estadoClass = 'estado-prestado';
     }
     
@@ -281,7 +337,7 @@ function renderTabla(items){
       <td>${esc(x.categoria)}</td>
       <td>${esc(x.caja)}</td>
       <td><span class="estado-badge ${estadoClass}">${esc(estado)}</span></td>
-      <td class="actions">
+      <td class="actions no-print">
         <button class="secondary view" data-id="${x.id}">Ver</button>
       </td>
     </tr>`;
@@ -298,7 +354,7 @@ function renderTabla(items){
       <th class="sortable" data-column="categoria">Categoría${sortIcon('categoria')}</th>
       <th class="sortable" data-column="caja">Caja${sortIcon('caja')}</th>
       <th class="sortable" data-column="estado">Estado${sortIcon('estado')}</th>
-      <th></th>
+      <th class="no-print"></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -311,6 +367,7 @@ function renderTabla(items){
     });
   });
   
+  // Añadir event listeners a los botones
   el.querySelectorAll('button.view').forEach(b=> b.addEventListener('click', async ()=> {
     b.disabled = true;
     await verLibro(b.dataset.id);
@@ -371,6 +428,9 @@ function mostrarDocumento(markdown, dialogId, contentId) {
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
     // Negrita
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Listas con viñetas - PRIMERO detectar bloques de texto + lista (con o sin strong)
+    .replace(/^(.+:)\n- /gm, '<p class="list-intro">$1</p>\n- ')
+    .replace(/^(<strong>.+<\/strong>)\n\d+\. /gm, '<p class="list-intro">$1</p>\n1. ')
     // Listas con viñetas
     .replace(/^- (.+)$/gm, '<li>$1</li>')
     // Listas numeradas
@@ -380,7 +440,7 @@ function mostrarDocumento(markdown, dialogId, contentId) {
     // Párrafos (líneas no vacías que no son otros elementos)
     .split('\n\n')
     .map(block => {
-      if (block.startsWith('<h') || block.startsWith('<li') || block.startsWith('<hr')) {
+      if (block.startsWith('<h') || block.startsWith('<li') || block.startsWith('<hr') || block.startsWith('<p')) {
         return block;
       }
       if (block.trim() === '') return '';
@@ -388,8 +448,8 @@ function mostrarDocumento(markdown, dialogId, contentId) {
     })
     .join('\n');
   
-  // Envolver listas consecutivas en ul/ol
-  html = html.replace(/(<li>.*?<\/li>\n?)+/gs, match => {
+  // Envolver listas consecutivas en ul/ol (permitiendo espacios en blanco entre <li>)
+  html = html.replace(/(?:<li>.*?<\/li>\s*)+/gs, match => {
     return '<ul>' + match + '</ul>';
   });
   
@@ -467,63 +527,65 @@ async function verLibro(id){
   const f = $('#frmLibro');
   
   try {
-    // Mostrar diálogo con indicador de carga
-    f.reset();
-    $('#dlgTitle').textContent = 'Cargando...';
-    // Mostrar mensaje en el campo de título
-    const tituloField = f.querySelector('textarea[name="titulo"]');
-    if (tituloField) tituloField.value = 'Cargando información...';
-    // Limpiar campos de préstamo y devolución
-    const prestadoA = $('#prestadoA');
-    const confirmarDevolucion = $('#confirmarDevolucion');
-    if (prestadoA) prestadoA.value = '';
-    if (confirmarDevolucion) confirmarDevolucion.value = '';
-    
-    // Limpiar portada y resumen anteriores
-    limpiarPortadaYResumen();
-    
-    // Deshabilitar todos los elementos del formulario
-    deshabilitarFormulario(true);
-    
-    dlg.showModal();
-    document.body.style.cursor = 'wait';
-    
     // Guardar ID del libro actual
     __currentLibroId = id;
     
-    // Obtener datos del libro
+    // Buscar datos del libro en __currentItems (cache local)
+    const cachedData = __currentItems.find(item => item.id === id);
+    
+    // Si tenemos datos en cache, mostrarlos inmediatamente
+    if (cachedData) {
+      // Usando datos en cache para carga rápida
+      f.reset();
+      $('#dlgTitle').textContent = '⏳ Cargando información...';
+      
+      // Mostrar datos en cache inmediatamente
+      actualizarCamposFormulario(cachedData);
+      actualizarBadgeEstado(cachedData);
+      
+      // Mostrar mensaje de carga en portada (mismo formato que préstamo/devolución)
+      mostrarMensajeCarga('Cargando información del libro', 'Esto puede tardar unos segundos');
+      
+      // Limpiar resumen
+      const resumenContainer = $('#resumenLibro');
+      if (resumenContainer) {
+        resumenContainer.innerHTML = '';
+        resumenContainer.textContent = '';
+      }
+      
+      // IMPORTANTE: Mantener formulario deshabilitado hasta que se carguen datos del backend
+      deshabilitarFormulario(true);
+      
+      // Mostrar diálogo inmediatamente
+      dlg.showModal();
+    } else {
+      // Sin cache, mostrar indicador de carga
+      // Sin cache, cargando desde backend
+      deshabilitarFormulario(true);
+      f.reset();
+      $('#dlgTitle').textContent = '⏳ Cargando información...';
+      const tituloField = f.querySelector('textarea[name="titulo"]');
+      if (tituloField) tituloField.value = 'Cargando...';
+      
+      // Mostrar mensaje de carga visual
+      mostrarMensajeCarga('Cargando información del libro', 'Esto puede tardar unos segundos');
+      
+      dlg.showModal();
+    }
+    
+    document.body.style.cursor = 'wait';
+    
+    // Obtener datos completos del backend (siempre, para tener datos actualizados)
     const data = await api('get_libro', { id });
     
     // Actualizar título
     $('#dlgTitle').textContent = 'Información del Libro';
     
     // Llenar campos con la información del libro
-    for (const [k,v] of Object.entries(data)){
-      if (k === 'estado') continue; // Saltear estado, lo manejamos aparte
-      const el = f.querySelector(`[name="${k}"]`);
-      if (el) el.value = v==null? '' : v;
-    }
+    actualizarCamposFormulario(data);
     
     // Mostrar estado con badge de color
-    const estadoDisplay = $('#estadoDisplay');
-    if (estadoDisplay) {
-      const estado = data.estado || data.estadoprestado || data['estado prestado'] || '';
-      const estadoNorm = String(estado).toLowerCase().trim();
-      
-      let estadoClass = '';
-      if (estadoNorm === 'disponible') {
-        estadoClass = 'estado-disponible';
-      } else if (estado && estadoNorm !== 'disponible') {
-        estadoClass = 'estado-prestado';
-      }
-      
-      estadoDisplay.innerHTML = estado ? `<span class="estado-badge ${estadoClass}">${esc(estado)}</span>` : '';
-    }
-    
-    // Mostrar nombre de la persona si ya está prestado
-    if (data.prestadoa && prestadoA) {
-      prestadoA.value = data.prestadoa;
-    }
+    actualizarBadgeEstado(data);
     
     // Mostrar portada del libro
     mostrarPortada(data.urldelaimagen || data.urldela || data.imagen || '');
@@ -534,6 +596,10 @@ async function verLibro(id){
     // Habilitar todos los elementos del formulario
     deshabilitarFormulario(false);
     
+    // IMPORTANTE: Aplicar lógica de préstamo/devolución DESPUÉS de habilitar el formulario
+    // para que los campos específicos se deshabiliten según el estado del libro
+    actualizarCamposSegunEstado(data);
+    
   } catch(err){ 
     dlg.close();
     alert(err.message); 
@@ -542,25 +608,30 @@ async function verLibro(id){
   }
 }
 
-function limpiarPortadaYResumen(){
-  // Limpiar portada (sin mostrar mensaje durante la carga)
+// Función para mostrar mensaje de carga en el diálogo
+function mostrarMensajeCarga(mensaje, submensaje = '') {
   const portadaContainer = $('#portadaLibro');
-  if (portadaContainer) {
-    portadaContainer.innerHTML = '';
-    portadaContainer.className = 'portada-placeholder';
-  }
-  
-  // Limpiar resumen (sin mostrar mensaje durante la carga)
   const resumenContainer = $('#resumenLibro');
-  if (resumenContainer) {
-    resumenContainer.textContent = '';
-    resumenContainer.classList.add('sin-contenido');
+  
+  // Mostrar mensaje principal en la portada
+  if (portadaContainer) {
+    portadaContainer.innerHTML = `
+      <div class="loading-indicator">
+        <div class="loading-indicator-icon">⏳</div>
+        <div class="loading-indicator-text">${mensaje}</div>
+        ${submensaje ? `<div class="loading-indicator-subtext">${submensaje}</div>` : ''}
+      </div>
+    `;
+    portadaContainer.className = '';
   }
   
-  // Limpiar estado
-  const estadoDisplay = $('#estadoDisplay');
-  if (estadoDisplay) {
-    estadoDisplay.innerHTML = '';
+  // Limpiar resumen para evitar mensaje duplicado
+  if (resumenContainer) {
+    resumenContainer.innerHTML = '';
+    resumenContainer.textContent = '';
+    // Mantener siempre la clase base para conservar el estilo del contenedor
+    resumenContainer.classList.add('resumen-texto');
+    resumenContainer.classList.remove('sin-contenido');
   }
 }
 
@@ -585,12 +656,18 @@ function mostrarResumen(texto){
   const resumenContainer = $('#resumenLibro');
   if (!resumenContainer) return;
   
+  // Limpiar cualquier contenido HTML previo (incluyendo mensajes de carga)
+  resumenContainer.innerHTML = '';
+  // Asegurar que el contenedor conserva su clase base
+  resumenContainer.classList.add('resumen-texto');
+  resumenContainer.classList.remove('sin-contenido');
+  
   if (!texto || texto.trim() === '') {
-    resumenContainer.textContent = 'Sin resumen';
+    // Agregar clase sin-contenido para centrar el mensaje
     resumenContainer.classList.add('sin-contenido');
+    resumenContainer.textContent = 'Sin resumen';
   } else {
     resumenContainer.textContent = texto.trim();
-    resumenContainer.classList.remove('sin-contenido');
   }
 }
 
@@ -627,6 +704,118 @@ function mostrarPortada(url){
   };
 }
 
+// Función auxiliar para obtener información del estado del libro
+function obtenerInfoEstado(data) {
+  const estado = data.estado || data.estadoprestado || data['estado prestado'] || '';
+  const estadoNorm = String(estado).toLowerCase().trim();
+  const estaDisponible = estadoNorm === 'disponible';
+  const estaPrestado = !estaDisponible && estado && estadoNorm !== '';
+  
+  return { estado, estadoNorm, estaDisponible, estaPrestado };
+}
+
+// Función auxiliar para obtener la clase CSS del badge según el estado
+function obtenerClaseBadge(estadoNorm, estado) {
+  if (estadoNorm === 'disponible') {
+    return 'estado-disponible';
+  } else if (estado && estadoNorm !== 'disponible') {
+    return 'estado-prestado';
+  }
+  return '';
+}
+
+// Función auxiliar para actualizar el badge de estado en el diálogo
+function actualizarBadgeEstado(data) {
+  const estadoDisplay = $('#estadoDisplay');
+  if (!estadoDisplay) return;
+  
+  const { estado, estadoNorm } = obtenerInfoEstado(data);
+  const estadoClass = obtenerClaseBadge(estadoNorm, estado);
+  
+  estadoDisplay.innerHTML = estado ? `<span class="estado-badge ${estadoClass}">${esc(estado)}</span>` : '';
+}
+
+// Función auxiliar para actualizar campos del formulario según el estado del libro
+function actualizarCamposSegunEstado(data) {
+  const prestadoA = $('#prestadoA');
+  const btnRegistrarPrestamo = $('#btnRegistrarPrestamo');
+  const btnRegistrarDevolucion = $('#btnRegistrarDevolucion');
+  const confirmarInput = $('#confirmarDevolucion');
+  
+  // Determinar si está prestado basándose en el estado
+  const { estaPrestado } = obtenerInfoEstado(data);
+  
+  if (estaPrestado) {
+    // Libro prestado: deshabilitar préstamo, habilitar devolución
+    if (prestadoA) {
+      prestadoA.value = '';
+      prestadoA.disabled = true;
+      prestadoA.placeholder = 'Libro ya prestado';
+    }
+    if (btnRegistrarPrestamo) {
+      btnRegistrarPrestamo.disabled = true;
+    }
+    if (confirmarInput) {
+      confirmarInput.disabled = false;
+      confirmarInput.value = '';
+      confirmarInput.placeholder = 'Escribe "DEVOLVER" para confirmar';
+    }
+    if (btnRegistrarDevolucion) {
+      btnRegistrarDevolucion.disabled = false;
+    }
+  } else {
+    // Libro disponible: habilitar préstamo, deshabilitar devolución
+    if (prestadoA) {
+      prestadoA.value = '';
+      prestadoA.disabled = false;
+      prestadoA.placeholder = 'Nombre de la persona';
+    }
+    if (btnRegistrarPrestamo) {
+      btnRegistrarPrestamo.disabled = false;
+    }
+    if (confirmarInput) {
+      confirmarInput.disabled = true;
+      confirmarInput.value = '';
+      confirmarInput.placeholder = 'Libro no prestado';
+    }
+    if (btnRegistrarDevolucion) {
+      btnRegistrarDevolucion.disabled = true;
+    }
+  }
+}
+
+// Función auxiliar para actualizar todos los campos del formulario con los datos del libro
+function actualizarCamposFormulario(data) {
+  const f = $('#frmLibro');
+  if (!f) return;
+  
+  for (const [k, v] of Object.entries(data)) {
+    if (k === 'estado') continue; // Saltear estado, lo manejamos aparte
+    const el = f.querySelector(`[name="${k}"]`);
+    if (el) el.value = v == null ? '' : v;
+  }
+}
+
+// Función auxiliar para realizar todas las actualizaciones después de préstamo/devolución
+async function actualizarDespuesDeOperacion(data, opts = {}) {
+  const { deferVisualClear = false } = opts;
+  // Actualizar UI de forma síncrona (no requiere await)
+  actualizarCamposFormulario(data);
+  actualizarBadgeEstado(data);
+  actualizarCamposSegunEstado(data);
+  actualizarFilaEnTabla(__currentLibroId, data);
+  actualizarEstadisticas(__currentItems);
+  
+  // Actualizar portada y resumen (limpia mensajes de carga)
+  if (!deferVisualClear) {
+    mostrarPortada(data.urldelaimagen || data.urldela || data.imagen || '');
+    mostrarResumen(data.resumen || data.descripcion || data.sinopsis || '');
+  }
+  
+  // Actualizar filtro de estado (esperar para que se actualice correctamente)
+  await actualizarSoloEstados();
+}
+
 function actualizarFilaEnTabla(libroId, data){
   // Buscar la fila en la tabla que corresponde al libro
   const tabla = $('#tabla');
@@ -639,11 +828,21 @@ function actualizarFilaEnTabla(libroId, data){
       // Actualizar las celdas de la fila
       const celdas = fila.querySelectorAll('td');
       if (celdas.length >= 4) {
-        // Actualizar Estado (columna 4, índice 3)
-        celdas[3].textContent = data.estado || data.estadoprestado || data['estado prestado'] || '';
+        // Actualizar Estado (columna 4, índice 3) con badge y color
+        const { estado, estadoNorm } = obtenerInfoEstado(data);
+        const estadoClass = obtenerClaseBadge(estadoNorm, estado);
+        
+        celdas[3].innerHTML = estado ? `<span class="estado-badge ${estadoClass}">${esc(estado)}</span>` : '';
       }
     }
   });
+  
+  // Actualizar también el objeto en __currentItems para que las estadísticas se calculen correctamente
+  const index = __currentItems.findIndex(item => item.id === libroId);
+  if (index !== -1) {
+    // Actualizar el estado del libro en el array
+    __currentItems[index] = { ...__currentItems[index], ...data };
+  }
 }
 
 async function registrarPrestamo(){
@@ -660,43 +859,68 @@ async function registrarPrestamo(){
     return;
   }
   
+  // Verificar que el libro esté disponible antes de permitir el préstamo
+  const estadoDisplay = $('#estadoDisplay');
+  if (estadoDisplay) {
+    const estadoBadge = estadoDisplay.querySelector('.estado-badge');
+    if (estadoBadge) {
+      const estadoTexto = estadoBadge.textContent.toLowerCase().trim();
+      if (estadoTexto !== 'disponible') {
+        alert('Este libro ya está prestado. Primero debe registrarse la devolución.');
+        return;
+      }
+    }
+  }
+  
   const btnRegistrar = $('#btnRegistrarPrestamo');
-  const f = $('#frmLibro');
+  const btnCerrar = document.querySelector('.btn-cerrar-footer');
   
   try {
-    // Deshabilitar botón y cambiar cursor
+    // Deshabilitar botón, botón cerrar y cambiar cursor
     if (btnRegistrar) btnRegistrar.disabled = true;
+    if (btnCerrar) btnCerrar.disabled = true;
     document.body.style.cursor = 'wait';
     
+    // Mostrar mensaje de carga
+    mostrarMensajeCarga('Registrando préstamo...', 'Por favor espera');
+    
     // Registrar préstamo en el backend
-    await api('registrar_prestamo', { 
+    const result = await api('registrar_prestamo', { 
       id: __currentLibroId, 
       prestadoa: nombrePersona 
     });
     
     alert('Préstamo registrado correctamente');
     
-    // Recargar información del libro para actualizar el estado
-    const data = await api('get_libro', { id: __currentLibroId });
+    // Mostrar mensaje de actualización (mantener visible hasta el final)
+    mostrarMensajeCarga('Actualizando información...', 'Casi listo');
     
-    // Actualizar todos los campos del diálogo con la información actualizada
-    for (const [k,v] of Object.entries(data)){
-      const el = f.querySelector(`[name="${k}"]`);
-      if (el) el.value = v==null? '' : v;
+    // Si el backend devuelve los datos actualizados, usarlos
+    // Si no, hacer una llamada adicional
+    let data;
+    if (result && result.libro) {
+      data = result.libro;
+    } else {
+      data = await api('get_libro', { id: __currentLibroId });
     }
     
-    // Actualizar campo de prestado a
-    if (data.prestadoa && prestadoA) {
-      prestadoA.value = data.prestadoa;
-    }
+    // Actualizar todo el diálogo, tabla, estadísticas y filtros (sin limpiar aún indicadores visuales)
+    await actualizarDespuesDeOperacion(data, { deferVisualClear: true });
     
-    // Actualizar la fila en la tabla
-    actualizarFilaEnTabla(__currentLibroId, data);
+    // Ahora sí limpiar los mensajes visuales y mostrar portada/resumen finales
+    mostrarPortada(data.urldelaimagen || data.urldela || data.imagen || '');
+    mostrarResumen(data.resumen || data.descripcion || data.sinopsis || '');
+    
+    // Rehabilitar botón cerrar exactamente al finalizar todas las actualizaciones
+    if (btnCerrar) btnCerrar.disabled = false;
     
   } catch(err) {
     alert('Error al registrar préstamo: ' + err.message);
-  } finally {
+    // En caso de error, habilitar el botón para permitir reintentar
     if (btnRegistrar) btnRegistrar.disabled = false;
+    if (btnCerrar) btnCerrar.disabled = false;
+  } finally {
+    // Habilitar botón cerrar y restaurar cursor
     document.body.style.cursor = 'default';
   }
 }
@@ -716,41 +940,52 @@ async function registrarDevolucion(){
   }
   
   const btnDevolucion = $('#btnRegistrarDevolucion');
-  const f = $('#frmLibro');
-  const prestadoA = $('#prestadoA');
+  const btnCerrar = document.querySelector('.btn-cerrar-footer');
   
   try {
-    // Deshabilitar botón y cambiar cursor
+    // Deshabilitar botón, botón cerrar y cambiar cursor
     if (btnDevolucion) btnDevolucion.disabled = true;
+    if (btnCerrar) btnCerrar.disabled = true;
     document.body.style.cursor = 'wait';
     
+    // Mostrar mensaje de carga
+    mostrarMensajeCarga('Registrando devolución...', 'Por favor espera');
+    
     // Registrar devolución en el backend
-    await api('registrar_devolucion', { 
+    const result = await api('registrar_devolucion', { 
       id: __currentLibroId
     });
     
     alert('Devolución registrada correctamente');
     
-    // Recargar información del libro para actualizar el estado
-    const data = await api('get_libro', { id: __currentLibroId });
+    // Mostrar mensaje de actualización (mantener hasta el final)
+    mostrarMensajeCarga('Actualizando información...', 'Casi listo');
     
-    // Actualizar todos los campos del diálogo con la información actualizada
-    for (const [k,v] of Object.entries(data)){
-      const el = f.querySelector(`[name="${k}"]`);
-      if (el) el.value = v==null? '' : v;
+    // Si el backend devuelve los datos actualizados, usarlos
+    // Si no, hacer una llamada adicional
+    let data;
+    if (result && result.libro) {
+      data = result.libro;
+    } else {
+      data = await api('get_libro', { id: __currentLibroId });
     }
     
-    // Limpiar campos de préstamo y devolución
-    if (prestadoA) prestadoA.value = data.prestadoa || '';
-    if (confirmarInput) confirmarInput.value = '';
+    // Actualizar todo el diálogo, tabla, estadísticas y filtros (sin limpiar aún indicadores visuales)
+    await actualizarDespuesDeOperacion(data, { deferVisualClear: true });
     
-    // Actualizar la fila en la tabla
-    actualizarFilaEnTabla(__currentLibroId, data);
+    // Limpiar indicadores y mostrar portada/resumen finales
+    mostrarPortada(data.urldelaimagen || data.urldela || data.imagen || '');
+    mostrarResumen(data.resumen || data.descripcion || data.sinopsis || '');
+    
+    // Rehabilitar botón cerrar al final
+    if (btnCerrar) btnCerrar.disabled = false;
     
   } catch(err) {
     alert('Error al registrar devolución: ' + err.message);
-  } finally {
+    // En caso de error, habilitar el botón para permitir reintentar
     if (btnDevolucion) btnDevolucion.disabled = false;
+  } finally {
+    // Restaurar cursor
     document.body.style.cursor = 'default';
   }
 }
@@ -867,6 +1102,39 @@ window.addEventListener('load', async ()=>{
     btnRegistrarDevolucion.addEventListener('click', registrarDevolucion);
   }
   
+  // Botones cerrar diálogos
+  const btnCerrarDialog = $('#btnCerrarDialog');
+  if (btnCerrarDialog) {
+    btnCerrarDialog.addEventListener('click', () => {
+      const dlg = $('#dlg');
+      if (dlg) dlg.close();
+    });
+  }
+  
+  const btnCerrarHelp = $('#btnCerrarHelp');
+  if (btnCerrarHelp) {
+    btnCerrarHelp.addEventListener('click', () => {
+      const dlgHelp = $('#dlgHelp');
+      if (dlgHelp) dlgHelp.close();
+    });
+  }
+  
+  const btnCerrarLicense = $('#btnCerrarLicense');
+  if (btnCerrarLicense) {
+    btnCerrarLicense.addEventListener('click', () => {
+      const dlgLicense = $('#dlgLicense');
+      if (dlgLicense) dlgLicense.close();
+    });
+  }
+  
+  const btnCerrarPrivacy = $('#btnCerrarPrivacy');
+  if (btnCerrarPrivacy) {
+    btnCerrarPrivacy.addEventListener('click', () => {
+      const dlgPrivacy = $('#dlgPrivacy');
+      if (dlgPrivacy) dlgPrivacy.close();
+    });
+  }
+  
   // Limpiar valores iniciales
   if (q) q.value = '';
   if (selCat) selCat.value = '';
@@ -875,4 +1143,33 @@ window.addEventListener('load', async ()=>{
   
   // Cargar todos los libros al iniciar
   await cargarLibros();
+  
+  // Detectar scroll horizontal en tabla para mostrar indicador
+  const card = $('.card');
+  if (card) {
+    const checkScroll = () => {
+      const hasScroll = card.scrollWidth > card.clientWidth;
+      if (hasScroll) {
+        card.classList.add('has-scroll');
+        card.addEventListener('scroll', () => {
+          const isAtEnd = card.scrollLeft >= card.scrollWidth - card.clientWidth - 5;
+          if (isAtEnd) {
+            card.classList.remove('has-scroll');
+          } else {
+            card.classList.add('has-scroll');
+          }
+        });
+      } else {
+        card.classList.remove('has-scroll');
+      }
+    };
+    
+    // Verificar al cargar y al redimensionar
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    
+    // Verificar después de renderizar tabla
+    const observer = new MutationObserver(checkScroll);
+    observer.observe(card, { childList: true, subtree: true });
+  }
 });

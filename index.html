@@ -75,11 +75,11 @@
           </div>
           <div class="resumen-column">
             <h4>Resumen</h4>
-            <div id="resumenLibro" class="resumen-texto">Sin resumen</div>
+            <div id="resumenLibro" class="resumen-texto sin-contenido">Sin resumen</div>
           </div>
         </div>
         <div class="dialog-footer">
-          <button type="button" value="cancel" onclick="document.getElementById('dlg').close()" class="btn-cerrar-footer">Cerrar</button>
+          <button type="button" value="cancel" id="btnCerrarDialog" class="btn-cerrar-footer">Cerrar</button>
         </div>
       </form>
     </dialog>
@@ -87,7 +87,7 @@
     <dialog id="dlgHelp" class="help-dialog">
       <div class="help-header">
         <h2>📚 Guía de Usuario</h2>
-        <button type="button" class="help-close" onclick="document.getElementById('dlgHelp').close()">✕</button>
+        <button type="button" class="help-close" id="btnCerrarHelp">✕</button>
       </div>
       <div id="helpContent" class="help-content"></div>
     </dialog>
@@ -95,7 +95,7 @@
     <dialog id="dlgLicense" class="help-dialog">
       <div class="help-header">
         <h2>📄 Términos de Uso</h2>
-        <button type="button" class="help-close" onclick="document.getElementById('dlgLicense').close()">✕</button>
+        <button type="button" class="help-close" id="btnCerrarLicense">✕</button>
       </div>
       <div id="licenseContent" class="help-content"></div>
     </dialog>
@@ -103,7 +103,7 @@
     <dialog id="dlgPrivacy" class="help-dialog">
       <div class="help-header">
         <h2>🔒 Política de Privacidad</h2>
-        <button type="button" class="help-close" onclick="document.getElementById('dlgPrivacy').close()">✕</button>
+        <button type="button" class="help-close" id="btnCerrarPrivacy">✕</button>
       </div>
       <div id="privacyContent" class="help-content"></div>
     </dialog>

@@ -80,13 +80,20 @@ Haz clic en cualquier encabezado de columna para ordenar:
 1. Selecciona una categoría del menú desplegable
 2. Selecciona una caja (opcional)
 3. Selecciona un estado (opcional)
-4. Haz clic en "Buscar"
+4. **Muy importante:** pulsa el botón **Buscar** para aplicar los filtros
 5. Los filtros se combinan para mostrar resultados más específicos
+6. Si cambias algún filtro, vuelve a pulsar **Buscar** para actualizar la tabla
 
 ### Limpiar búsqueda
 
 - Haz clic en "Limpiar" para quitar todos los filtros
 - La tabla vuelve a mostrar todos los libros de la colección
+
+### Nota clave sobre los filtros
+
+- Los filtros (Categoría, Caja y Estado) **no se aplican automáticamente** al seleccionarlos.
+- Para ver los resultados filtrados, **debes pulsar el botón Buscar**.
+- Si solo cambias los filtros y no pulsas **Buscar**, la tabla no se actualiza.
 
 ## Consejos útiles
 
@@ -101,6 +108,8 @@ Haz clic en cualquier encabezado de columna para ordenar:
 ✅ **Para imprimir un inventario parcial:** Aplica los filtros que necesites y luego haz clic en "Imprimir"
 
 ✅ **Para ordenar por cualquier columna:** Haz clic en el encabezado de la columna
+
+✅ **Si no ves cambios al mover los filtros:** recuerda pulsar **Buscar**.
 
 ## Información importante
 
