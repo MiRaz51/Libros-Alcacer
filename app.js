@@ -612,17 +612,40 @@ async function verLibro(id){
 function mostrarMensajeCarga(mensaje, submensaje = '') {
   const portadaContainer = $('#portadaLibro');
   const resumenContainer = $('#resumenLibro');
+  const mensajeMovilContainer = $('#mensajeCargaMovil');
+  const dlg = $('#dlg');
   
-  // Mostrar mensaje principal en la portada
+  const mensajeHTML = `
+    <div class="loading-indicator">
+      <div class="loading-indicator-icon">⏳</div>
+      <div class="loading-indicator-text">${mensaje}</div>
+      ${submensaje ? `<div class="loading-indicator-subtext">${submensaje}</div>` : ''}
+    </div>
+  `;
+  
+  // Mostrar mensaje en la portada (visible en desktop)
   if (portadaContainer) {
-    portadaContainer.innerHTML = `
-      <div class="loading-indicator">
-        <div class="loading-indicator-icon">⏳</div>
-        <div class="loading-indicator-text">${mensaje}</div>
-        ${submensaje ? `<div class="loading-indicator-subtext">${submensaje}</div>` : ''}
-      </div>
-    `;
+    portadaContainer.innerHTML = mensajeHTML;
     portadaContainer.className = '';
+  }
+  
+  // Mostrar mensaje en contenedor móvil (visible en móvil)
+  if (mensajeMovilContainer) {
+    mensajeMovilContainer.innerHTML = mensajeHTML;
+    
+    // Hacer scroll al inicio del diálogo para que el mensaje sea visible en móvil
+    // Usar setTimeout para asegurar que el DOM se actualice antes del scroll
+    setTimeout(() => {
+      if (dlg && mensajeMovilContainer) {
+        // Scroll suave al inicio del diálogo
+        const form = dlg.querySelector('form');
+        if (form) {
+          form.scrollTop = 0;
+        }
+        // También intentar scroll en el diálogo mismo
+        dlg.scrollTop = 0;
+      }
+    }, 10);
   }
   
   // Limpiar resumen para evitar mensaje duplicado
@@ -673,11 +696,17 @@ function mostrarResumen(texto){
 
 function mostrarPortada(url){
   const portadaContainer = $('#portadaLibro');
+  const mensajeMovilContainer = $('#mensajeCargaMovil');
   if (!portadaContainer) return;
   
   // Limpiar contenido anterior
   portadaContainer.innerHTML = '';
   portadaContainer.className = 'portada-placeholder';
+  
+  // Limpiar mensaje móvil
+  if (mensajeMovilContainer) {
+    mensajeMovilContainer.innerHTML = '';
+  }
   
   if (!url || url.trim() === '') {
     // Sin URL, mostrar texto

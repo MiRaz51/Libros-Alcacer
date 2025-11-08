@@ -79,6 +79,8 @@ h1{ margin: 0 0 12px; font-weight: 650; }
  .loading-indicator-icon{ font-size: 2rem; margin-bottom: 0.5rem; }
  .loading-indicator-text{ font-size: 1rem; font-weight: 500; }
  .loading-indicator-subtext{ font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.8; }
+ /* Contenedor de mensajes móvil - oculto por defecto en desktop */
+ .mensaje-carga-movil{ display: none; }
  label{ display:flex; flex-direction: column; gap:6px; font-size: 13px; color: var(--muted); }
  input, select, textarea{ padding:10px; border-radius: 8px; border:1px solid var(--border); background: #0f1623; color: var(--fg); font-family: inherit; }
  textarea{ resize: vertical; }
@@ -458,6 +460,22 @@ h1{ margin: 0 0 12px; font-weight: 650; }
   
   /* Diálogo móvil - reorganizado en columna única */
   dialog{ max-width: 98vw; max-height: 95vh; margin: 1vh auto; }
+  
+  /* Contenedor de mensajes de carga móvil - visible solo en móvil */
+  .mensaje-carga-movil{ 
+    display: block;
+    min-height: 0;
+    margin: 0 0 12px 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .mensaje-carga-movil:empty{ display: none; }
+  .mensaje-carga-movil .loading-indicator{ padding: 1rem; }
+  .mensaje-carga-movil .loading-indicator-icon{ font-size: 2.5rem; }
+  .mensaje-carga-movil .loading-indicator-text{ font-size: 1.1rem; font-weight: 600; color: var(--primary); }
+  .mensaje-carga-movil .loading-indicator-subtext{ font-size: 0.9rem; color: var(--muted); }
   
   /* Estado en diálogo móvil - extra grande y visible */
   dialog .estado-badge{ 
