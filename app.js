@@ -1,3 +1,5 @@
+  // Quitar énfasis del botón Buscar al iniciar la búsqueda
+  if (btnBuscar) btnBuscar.classList.remove('attention');
 // Configurar la URL del WebApp de Apps Script aquí
 const API_URL = 'https://script.google.com/macros/s/AKfycbzNVc-5NU3DkeClA9Y8M_pVRYJd3s2gpfVFgQ1OjWSH3BHL6ikvNL7Y4UBQnr8TQowx8Q/exec';
 
@@ -116,12 +118,15 @@ async function actualizarFiltrosCruzados(origin){
     const selCat = document.getElementById('selCategoria');
     const selCaja = document.getElementById('selCaja');
     const selEst = document.getElementById('selEstado');
+    const btnBuscar = document.getElementById('btnBuscar');
     
+    // Bloquear scroll global (PC y móvil) mientras se actualizan filtros
+    lockAppScroll();
+
     // Indicador visual: deshabilitar selects, botones y cambiar cursor
     if (selCat) selCat.disabled = true;
     if (selCaja) selCaja.disabled = true;
     if (selEst) selEst.disabled = true;
-    const btnBuscar = document.getElementById('btnBuscar');
     const btnReset = document.getElementById('btnReset');
     const btnPrint = document.getElementById('btnPrint');
     if (btnBuscar) btnBuscar.disabled = true;
@@ -138,7 +143,12 @@ async function actualizarFiltrosCruzados(origin){
     const cat = selCat?.value.trim() || '';
     const caja = selCaja?.value.trim() || '';
     const estado = selEst?.value.trim() || '';
-  
+
+    // Colocar placeholder de "Cargando..." en los otros filtros no-origen
+    if (selCat && origin !== 'cat') selCat.innerHTML = `<option value="">Cargando...</option>`;
+    if (selCaja && origin !== 'caja') selCaja.innerHTML = `<option value="">Cargando...</option>`;
+    if (selEst && origin !== 'estado') selEst.innerHTML = `<option value="">Cargando...</option>`;
+
   try {
     // Obtener catálogos filtrados del backend
     const data = await api('catalogos_filtrados', { cat, caja, estado });
@@ -186,7 +196,7 @@ async function actualizarFiltrosCruzados(origin){
       if (selCat) selCat.disabled = false;
       if (selCaja) selCaja.disabled = false;
       if (selEst) selEst.disabled = false;
-      if (btnBuscar) btnBuscar.disabled = false;
+      if (btnBuscar) btnBuscar.disabled = false; // mantener clase .attention hasta que se presione Buscar
       if (btnReset) btnReset.disabled = false;
       if (btnPrint) btnPrint.disabled = false;
       
@@ -196,6 +206,13 @@ async function actualizarFiltrosCruzados(origin){
       
       document.body.style.cursor = 'default';
       __crossBusy = false;
+      // Desbloquear scroll global
+      unlockAppScroll();
+    }
+    // Resaltar y enfocar el botón Buscar para indicar la acción siguiente
+    if (btnBuscar){
+      btnBuscar.classList.add('attention');
+      setTimeout(()=>btnBuscar.focus(), 0);
     }
   }, 100); // Fin del setTimeout
 }
@@ -206,13 +223,13 @@ async function cargarLibros(){
   const caja = document.getElementById('selCaja')?.value.trim() || '';
   const estado = document.getElementById('selEstado')?.value.trim() || '';
   const tabla = $('#tabla');
+  const btnBuscar = document.getElementById('btnBuscar');
   
   // Bloquear todos los elementos durante la carga
   const qInput = $('#q');
   const selCat = document.getElementById('selCategoria');
   const selCaja = document.getElementById('selCaja');
   const selEst = document.getElementById('selEstado');
-  const btnBuscar = document.getElementById('btnBuscar');
   const btnReset = document.getElementById('btnReset');
   const btnPrint = document.getElementById('btnPrint');
   
@@ -255,6 +272,8 @@ async function cargarLibros(){
     if (selCaja) selCaja.disabled = false;
     if (selEst) selEst.disabled = false;
     if (btnBuscar) btnBuscar.disabled = false;
+    // Asegurar que el énfasis visual quede apagado tras una búsqueda
+    if (btnBuscar) btnBuscar.classList.remove('attention');
     if (btnReset) btnReset.disabled = false;
     if (btnPrint) btnPrint.disabled = false;
     document.body.style.cursor = 'default';
@@ -522,11 +541,39 @@ let __currentItems = [];
 let __sortColumn = null;
 let __sortDirection = 'asc';
 
+// Handler y flag globales para bloqueo de scroll en el diálogo (modo móvil)
+function __preventScrollHandler(e){
+  e.preventDefault();
+  e.stopPropagation();
+  return false;
+}
+
+function lockAppScroll(){
+  if (window._scrollLockedApp) return;
+  document.body.style.overflow = 'hidden';
+  document.body.style.touchAction = 'none';
+  window.addEventListener('wheel', __preventScrollHandler, { passive: false });
+  window.addEventListener('touchmove', __preventScrollHandler, { passive: false });
+  window._scrollLockedApp = true;
+}
+
+function unlockAppScroll(){
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('touch-action');
+  window.removeEventListener('wheel', __preventScrollHandler);
+  window.removeEventListener('touchmove', __preventScrollHandler);
+  window._scrollLockedApp = false;
+}
+
+
 async function verLibro(id){
   const dlg = $('#dlg');
   const f = $('#frmLibro');
   
   try {
+    // Limpiar cualquier bloqueo previo antes de abrir
+    limpiarMensajeCarga();
+    
     // Guardar ID del libro actual
     __currentLibroId = id;
     
@@ -558,6 +605,8 @@ async function verLibro(id){
       
       // Mostrar diálogo inmediatamente
       dlg.showModal();
+      // Bloquear scroll del body
+      document.body.style.overflow = 'hidden';
     } else {
       // Sin cache, mostrar indicador de carga
       // Sin cache, cargando desde backend
@@ -571,6 +620,8 @@ async function verLibro(id){
       mostrarMensajeCarga('Cargando información del libro', 'Esto puede tardar unos segundos');
       
       dlg.showModal();
+      // Bloquear scroll del body
+      document.body.style.overflow = 'hidden';
     }
     
     document.body.style.cursor = 'wait';
@@ -602,10 +653,69 @@ async function verLibro(id){
     
   } catch(err){ 
     dlg.close();
+    // Desbloquear scroll del body
+    document.body.style.overflow = '';
     alert(err.message); 
   } finally {
     document.body.style.cursor = 'default';
   }
+}
+
+// Listener para desbloquear scroll cuando se cierra el diálogo
+document.addEventListener('DOMContentLoaded', () => {
+  const dlg = $('#dlg');
+  if (dlg) {
+    dlg.addEventListener('close', () => {
+      document.body.style.overflow = '';
+    });
+  }
+});
+
+// Función auxiliar para detectar si estamos en móvil
+function esModoMovil() {
+  return window.innerWidth <= 480;
+}
+
+// Función para limpiar mensaje de carga y desbloquear scroll
+function limpiarMensajeCarga() {
+  const mensajeMovilContainer = $('#mensajeCargaMovil');
+  const dlg = $('#dlg');
+  
+  // 1) Limpiar HTML del contenedor de mensajes (esto también desactiva overlay CSS)
+  if (mensajeMovilContainer) {
+    mensajeMovilContainer.innerHTML = '';
+  }
+  
+  if (!dlg) return;
+  
+  // 2) Remover clase de bloqueo siempre (sea móvil o no)
+  dlg.classList.remove('scroll-bloqueado');
+  void dlg.offsetHeight; // reflow
+  dlg.classList.remove('scroll-bloqueado');
+  
+  // 3) Limpiar estilos inline del form y del dialog
+  const form = dlg.querySelector('form');
+  if (form) {
+    form.style.removeProperty('overflow');
+    form.style.removeProperty('touch-action');
+    form.style.removeProperty('overscroll-behavior');
+  }
+  dlg.style.removeProperty('overflow');
+  
+  // 4) Remover listeners de prevención (usar el handler global para asegurar)
+  dlg.removeEventListener('scroll', __preventScrollHandler);
+  dlg.removeEventListener('touchmove', __preventScrollHandler);
+  dlg.removeEventListener('wheel', __preventScrollHandler);
+  if (form) {
+    form.removeEventListener('scroll', __preventScrollHandler);
+    form.removeEventListener('touchmove', __preventScrollHandler);
+    form.removeEventListener('wheel', __preventScrollHandler);
+  }
+  dlg._preventScrollHandler = undefined;
+  dlg._scrollLocked = false;
+  
+  // 5) Reflow final
+  void dlg.offsetHeight;
 }
 
 // Función para mostrar mensaje de carga en el diálogo
@@ -633,25 +743,48 @@ function mostrarMensajeCarga(mensaje, submensaje = '') {
   if (mensajeMovilContainer) {
     mensajeMovilContainer.innerHTML = mensajeHTML;
     
-    // Hacer scroll al inicio del diálogo para que el mensaje sea visible en móvil
-    // Usar setTimeout para asegurar que el DOM se actualice antes del scroll
-    setTimeout(() => {
-      if (dlg && mensajeMovilContainer) {
-        // Scroll suave al inicio del diálogo
-        const form = dlg.querySelector('form');
-        if (form) {
-          form.scrollTop = 0;
+    // Solo aplicar bloqueo de scroll en móvil
+    if (esModoMovil()) {
+      // Hacer scroll al inicio del diálogo para que el mensaje sea visible en móvil
+      // Usar setTimeout para asegurar que el DOM se actualice antes del scroll
+      setTimeout(() => {
+        if (dlg && mensajeMovilContainer) {
+          // Agregar clase para bloquear scroll con CSS
+          dlg.classList.add('scroll-bloqueado');
+          
+          // Scroll suave al inicio del diálogo
+          const form = dlg.querySelector('form');
+          if (form) {
+            form.scrollTop = 0;
+            // Bloquear scroll en móvil mientras se muestra el mensaje
+            form.style.overflow = 'hidden';
+            form.style.touchAction = 'none';
+          }
+          // También intentar scroll en el diálogo mismo
+          dlg.scrollTop = 0;
+          dlg.style.overflow = 'hidden';
+          
+          // Agregar listeners para prevenir scroll (solo una vez)
+          if (!dlg._scrollLocked) {
+            dlg._preventScrollHandler = __preventScrollHandler;
+            dlg.addEventListener('scroll', __preventScrollHandler, { passive: false });
+            dlg.addEventListener('touchmove', __preventScrollHandler, { passive: false });
+            dlg.addEventListener('wheel', __preventScrollHandler, { passive: false });
+            if (form) {
+              form.addEventListener('scroll', __preventScrollHandler, { passive: false });
+              form.addEventListener('touchmove', __preventScrollHandler, { passive: false });
+              form.addEventListener('wheel', __preventScrollHandler, { passive: false });
+            }
+            dlg._scrollLocked = true;
+          }
         }
-        // También intentar scroll en el diálogo mismo
-        dlg.scrollTop = 0;
-      }
-    }, 10);
+      }, 10);
+    }
   }
   
   // Limpiar resumen para evitar mensaje duplicado
   if (resumenContainer) {
     resumenContainer.innerHTML = '';
-    resumenContainer.textContent = '';
     // Mantener siempre la clase base para conservar el estilo del contenedor
     resumenContainer.classList.add('resumen-texto');
     resumenContainer.classList.remove('sin-contenido');
@@ -679,58 +812,139 @@ function mostrarResumen(texto){
   const resumenContainer = $('#resumenLibro');
   if (!resumenContainer) return;
   
-  // Limpiar cualquier contenido HTML previo (incluyendo mensajes de carga)
   resumenContainer.innerHTML = '';
-  // Asegurar que el contenedor conserva su clase base
   resumenContainer.classList.add('resumen-texto');
   resumenContainer.classList.remove('sin-contenido');
   
-  if (!texto || texto.trim() === '') {
-    // Agregar clase sin-contenido para centrar el mensaje
+  const txt = (texto || '').trim();
+  if (!txt) {
     resumenContainer.classList.add('sin-contenido');
     resumenContainer.textContent = 'Sin resumen';
-  } else {
-    resumenContainer.textContent = texto.trim();
+    return;
   }
+  
+  resumenContainer.textContent = txt;
 }
 
 function mostrarPortada(url){
   const portadaContainer = $('#portadaLibro');
-  const mensajeMovilContainer = $('#mensajeCargaMovil');
   if (!portadaContainer) return;
   
-  // Limpiar contenido anterior
+  limpiarMensajeCarga();
+  
   portadaContainer.innerHTML = '';
   portadaContainer.className = 'portada-placeholder';
   
-  // Limpiar mensaje móvil
-  if (mensajeMovilContainer) {
-    mensajeMovilContainer.innerHTML = '';
-  }
-  
-  if (!url || url.trim() === '') {
-    // Sin URL, mostrar texto
+  const src = (url || '').trim();
+  if (!src) {
     portadaContainer.textContent = 'Sin portada';
     return;
   }
   
-  // Crear imagen
   const img = document.createElement('img');
-  img.src = url.trim();
+  img.src = src;
   img.alt = 'Portada del libro';
   
-  // Manejar error de carga
   img.onerror = function(){
     portadaContainer.innerHTML = '';
     portadaContainer.textContent = 'Sin portada';
   };
   
-  // Manejar carga exitosa
   img.onload = function(){
     portadaContainer.innerHTML = '';
     portadaContainer.className = '';
     portadaContainer.appendChild(img);
+    
+    // Permitir ver imagen en pantalla completa al hacer clic (todas las vistas)
+    img.style.cursor = 'pointer';
+    img.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      mostrarImagenPantallaCompleta(src);
+    });
+    // Prevenir menú contextual (click largo)
+    img.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
   };
+}
+
+// Función para mostrar imagen en pantalla completa
+function mostrarImagenPantallaCompleta(url) {
+  // Usar un <dialog> modal para estar por encima del diálogo existente
+  const dlg = document.createElement('dialog');
+  dlg.style.cssText = `
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    background: rgba(0,0,0,0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  `;
+  dlg.addEventListener('cancel', (e)=>{ e.preventDefault(); cerrar(); });
+
+  const closeBtn = document.createElement('button');
+  closeBtn.setAttribute('aria-label', 'Cerrar');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = `
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: white;
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+  `;
+  // Efecto hover simple
+  closeBtn.addEventListener('mouseenter', ()=>{
+    closeBtn.style.background = 'rgba(255,255,255,0.18)';
+  });
+  closeBtn.addEventListener('mouseleave', ()=>{
+    closeBtn.style.background = 'rgba(255,255,255,0.10)';
+  });
+
+  const img = document.createElement('img');
+  img.src = url;
+  // En PC, usar casi toda la pantalla; en móvil un poco menos para el botón
+  const isMobile = window.innerWidth <= 768;
+  const maxSize = isMobile ? '96' : '99';
+  img.style.cssText = `
+    max-width: ${maxSize}vw;
+    max-height: ${maxSize}vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 2px;
+  `;
+
+  dlg.appendChild(closeBtn);
+  dlg.appendChild(img);
+
+  const cerrar = () => {
+    try { dlg.close(); } catch {}
+    if (document.body.contains(dlg)) document.body.removeChild(dlg);
+  };
+
+  closeBtn.addEventListener('click', (e)=>{ e.stopPropagation(); cerrar(); });
+  dlg.addEventListener('click', (e)=>{ if (e.target === dlg) cerrar(); });
+  img.addEventListener('click', (e)=> e.stopPropagation());
+
+  document.body.appendChild(dlg);
+  try { dlg.showModal(); } catch { dlg.show(); }
 }
 
 // Función auxiliar para obtener información del estado del libro
@@ -821,8 +1035,21 @@ function actualizarCamposFormulario(data) {
   for (const [k, v] of Object.entries(data)) {
     if (k === 'estado') continue; // Saltear estado, lo manejamos aparte
     const el = f.querySelector(`[name="${k}"]`);
-    if (el) el.value = v == null ? '' : v;
+    if (el) {
+      el.value = v == null ? '' : v;
+      // Auto-ajustar altura del textarea del título
+      if (el.tagName === 'TEXTAREA' && el.name === 'titulo') {
+        autoAjustarTextarea(el);
+      }
+    }
   }
+}
+
+// Función para auto-ajustar la altura de un textarea según su contenido
+function autoAjustarTextarea(textarea) {
+  if (!textarea) return;
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
 }
 
 // Función auxiliar para realizar todas las actualizaciones después de préstamo/devolución
@@ -936,6 +1163,9 @@ async function registrarPrestamo(){
     // Actualizar todo el diálogo, tabla, estadísticas y filtros (sin limpiar aún indicadores visuales)
     await actualizarDespuesDeOperacion(data, { deferVisualClear: true });
     
+    // Pequeño delay para asegurar que el DOM se actualice
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     // Ahora sí limpiar los mensajes visuales y mostrar portada/resumen finales
     mostrarPortada(data.urldelaimagen || data.urldela || data.imagen || '');
     mostrarResumen(data.resumen || data.descripcion || data.sinopsis || '');
@@ -945,11 +1175,14 @@ async function registrarPrestamo(){
     
   } catch(err) {
     alert('Error al registrar préstamo: ' + err.message);
-    // En caso de error, habilitar el botón para permitir reintentar
+    // En caso de error, limpiar mensaje y habilitar botones
+    limpiarMensajeCarga();
     if (btnRegistrar) btnRegistrar.disabled = false;
     if (btnCerrar) btnCerrar.disabled = false;
   } finally {
-    // Habilitar botón cerrar y restaurar cursor
+    // Limpiar mensaje de carga
+    limpiarMensajeCarga();
+    // Restaurar cursor
     document.body.style.cursor = 'default';
   }
 }
@@ -1002,6 +1235,9 @@ async function registrarDevolucion(){
     // Actualizar todo el diálogo, tabla, estadísticas y filtros (sin limpiar aún indicadores visuales)
     await actualizarDespuesDeOperacion(data, { deferVisualClear: true });
     
+    // Pequeño delay para asegurar que el DOM se actualice
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     // Limpiar indicadores y mostrar portada/resumen finales
     mostrarPortada(data.urldelaimagen || data.urldela || data.imagen || '');
     mostrarResumen(data.resumen || data.descripcion || data.sinopsis || '');
@@ -1011,9 +1247,13 @@ async function registrarDevolucion(){
     
   } catch(err) {
     alert('Error al registrar devolución: ' + err.message);
-    // En caso de error, habilitar el botón para permitir reintentar
+    // En caso de error, limpiar mensaje y habilitar botones
+    limpiarMensajeCarga();
     if (btnDevolucion) btnDevolucion.disabled = false;
+    if (btnCerrar) btnCerrar.disabled = false;
   } finally {
+    // Limpiar mensaje de carga
+    limpiarMensajeCarga();
     // Restaurar cursor
     document.body.style.cursor = 'default';
   }
@@ -1136,7 +1376,19 @@ window.addEventListener('load', async ()=>{
   if (btnCerrarDialog) {
     btnCerrarDialog.addEventListener('click', () => {
       const dlg = $('#dlg');
-      if (dlg) dlg.close();
+      if (dlg) {
+        // Limpiar mensaje y desbloquear antes de cerrar
+        limpiarMensajeCarga();
+        dlg.close();
+      }
+    });
+  }
+  
+  // También limpiar cuando se cierra el diálogo de cualquier forma
+  const dlg = $('#dlg');
+  if (dlg) {
+    dlg.addEventListener('close', () => {
+      limpiarMensajeCarga();
     });
   }
   

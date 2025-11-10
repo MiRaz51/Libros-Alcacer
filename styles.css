@@ -20,6 +20,50 @@ h1{ margin: 0 0 12px; font-weight: 650; }
 .toolbar button{ padding:8px 12px; border-radius:8px; border:1px solid var(--border); background: var(--primary); color: #07111e; cursor:pointer; }
 .toolbar button:hover{ filter: brightness(1.1); }
 .toolbar .help-btn{ background: var(--accent); font-size: 18px; padding: 8px 14px; margin-left: auto; }
+
+/* Enfoque visual para el botón Buscar cuando hay filtros pendientes */
+.toolbar #btnBuscar.attention{
+  position: relative;
+  transform: translateZ(0) scale(1.02);
+  transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+  border-color: rgba(58,169,255,.9);
+  box-shadow:
+    0 0 0 2px rgba(58,169,255,.25),
+    0 0 0 6px rgba(58,169,255,.15),
+    0 6px 18px rgba(58,169,255,.25);
+  background:
+    linear-gradient(180deg, rgba(58,169,255,.18), rgba(58,169,255,.06)) 0 0/100% 100%,
+    var(--primary);
+  outline: none;
+}
+.toolbar #btnBuscar.attention::after{
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow: 0 0 0 0 rgba(58,169,255,.35);
+  animation: btnHalo 1.2s ease-in-out infinite;
+}
+@keyframes btnHalo{
+  0%   { box-shadow: 0 0 0 0 rgba(58,169,255,.35); }
+  70%  { box-shadow: 0 0 0 12px rgba(58,169,255,0); }
+  100% { box-shadow: 0 0 0 0 rgba(58,169,255,0); }
+}
+.toolbar #btnBuscar.attention:focus-visible{
+  outline: 2px solid rgba(58,169,255,.95);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce){
+  .toolbar #btnBuscar.attention{
+    transform: none;
+    box-shadow: 0 0 0 2px rgba(58,169,255,.35);
+  }
+  .toolbar #btnBuscar.attention::after{
+    animation: none;
+    box-shadow: none;
+  }
+}
 .card{ background: var(--card); border:1px solid var(--border); border-radius:12px; padding: 8px; position: relative; }
 .card::after{ content: '→'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 24px; color: var(--primary); pointer-events: none; opacity: 0; transition: opacity 0.3s; animation: pulse 2s infinite; }
 .card.has-scroll::after{ opacity: 0.7; }
@@ -37,7 +81,7 @@ h1{ margin: 0 0 12px; font-weight: 650; }
  .estado-badge{ padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; display: inline-block; }
  .estado-disponible{ background: #1a4d2e; color: #4ade80; border: 1px solid #22c55e; }
  .estado-prestado{ background: #4d1a1a; color: #f87171; border: 1px solid #ef4444; }
- .estado-display{ display: flex; align-items: center; }
+ .estado-display{ display: flex; align-items: center; width: 100%; }
  /* Estado en diálogo - más grande y visible */
  dialog .estado-badge{ 
    padding: 16px 24px; 
@@ -51,7 +95,7 @@ h1{ margin: 0 0 12px; font-weight: 650; }
    border-width: 2px;
  }
  .dialog-footer{ display: flex; justify-content: flex-end; padding: 16px; border-top: 1px solid var(--border); }
- .btn-cerrar-footer{ padding: 10px 24px; border-radius: 8px; border: 1px solid var(--border); background: var(--accent); color: #031414; cursor: pointer; font-weight: 500; }
+ .btn-cerrar-footer{ padding: 10px 24px; border-radius: 8px; border: 1px solid var(--border); background: var(--accent); color: #031414; cursor: pointer; font-weight: 500; font-size: 15px; }
  .actions{ white-space: nowrap; }
  button{ padding:6px 10px; border-radius: 8px; border:1px solid var(--border); background: var(--accent); color: #031414; cursor: pointer; }
  button:disabled{ opacity: 0.5; cursor: not-allowed; }
@@ -62,15 +106,15 @@ h1{ margin: 0 0 12px; font-weight: 650; }
  dialog{ border:1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--fg); padding: 0; max-width: 1200px; width: 95vw; }
  dialog form{ padding: 16px; }
  dialog::backdrop{ background: rgba(0,0,0,0.5); }
- .dialog-container{ display: flex; gap: 20px; align-items: stretch; }
+ .dialog-container{ display: flex; gap: 20px; align-items: flex-start; }
  .dialog-container > .grid{ flex: 1; min-width: 0; }
- .portada-column{ width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
+ .portada-column{ width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; align-self: flex-start; }
  .portada-column h4{ margin: 0; font-size: 14px; font-weight: 600; color: var(--muted); }
- .portada-placeholder{ width: 100%; flex: 1; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #0a0e15; color: var(--muted); font-size: 14px; }
- .portada-column img{ width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
- .resumen-column{ width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; min-height: 400px; }
+ .portada-placeholder{ width: 100%; height: 520px; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #0a0e15; color: var(--muted); font-size: 14px; }
+ .portada-column img{ width: 100%; height: 520px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+ .resumen-column{ width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; align-self: flex-start; }
  .resumen-column h4{ margin: 0; font-size: 14px; font-weight: 600; color: var(--muted); }
- .resumen-texto{ padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: #0a0e15; color: var(--fg); font-size: 13px; line-height: 1.6; flex: 1; overflow-y: auto; white-space: pre-wrap; min-height: 300px; }
+ .resumen-texto{ padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: #0a0e15; color: var(--fg); font-size: 13px; line-height: 1.6; overflow-y: auto; white-space: pre-wrap; height: 520px; max-height: 520px; }
  .resumen-texto.sin-contenido{ display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; padding: 12px; white-space: normal; min-height: 200px; }
  .loading-message{ text-align: center; padding: 3rem; }
  .loading-message-title{ font-size: 1.2rem; margin-bottom: 1rem; }
@@ -84,13 +128,15 @@ h1{ margin: 0 0 12px; font-weight: 650; }
  label{ display:flex; flex-direction: column; gap:6px; font-size: 13px; color: var(--muted); }
  input, select, textarea{ padding:10px; border-radius: 8px; border:1px solid var(--border); background: #0f1623; color: var(--fg); font-family: inherit; }
  textarea{ resize: vertical; }
+ textarea[name="titulo"]{ resize: none; overflow: hidden; min-height: 48px; }
  input:disabled, select:disabled, textarea:disabled{ opacity: 0.5; cursor: wait; }
  input:read-only, textarea:read-only{ background: #0a0e15; cursor: default; }
  .grid{ display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
  .grid .full{ grid-column: 1 / -1; }
- .prestamo-row{ grid-column: 1 / -1; display: flex; gap: 12px; align-items: flex-end; }
- .prestamo-row label{ flex: 1; }
- .prestamo-row button{ flex-shrink: 0; margin-bottom: 0; }
+ .prestamo-row{ grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 180px; gap: 12px; align-items: end; }
+ .prestamo-row label{ display: flex; flex-direction: column; gap: 6px; }
+ .prestamo-row input{ height: 42px; padding: 10px; box-sizing: border-box; }
+ .prestamo-row button{ height: 42px; padding: 10px 16px; box-sizing: border-box; width: 100%; }
 
  .help-dialog{ max-width: 900px; width: 90vw; max-height: 85vh; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--fg); padding: 0; }
  .help-header{ display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); background: var(--bg); }
@@ -412,27 +458,42 @@ h1{ margin: 0 0 12px; font-weight: 650; }
   }
   /* Título - columna delgada con wrap */
   td:nth-child(1), th:nth-child(1){ 
-    width: 32%;
+    width: 28.5%;
     white-space: normal;
     word-wrap: break-word;
     line-height: 1.3;
   }
   /* Categoría - columna delgada con wrap */
   td:nth-child(2), th:nth-child(2){ 
-    width: 27%;
+    width: 26.5%;
     white-space: normal;
     word-wrap: break-word;
     line-height: 1.3;
   }
   /* Caja - columna muy delgada */
   td:nth-child(3), th:nth-child(3){ 
-    width: 10%;
+    width: 13%;
     text-align: center;
+  }
+  /* Asegurar que el encabezado 'Caja' sea legible en móviles */
+  th:nth-child(3){
+    white-space: normal; /* permitir salto de línea si es necesario */
+    text-overflow: clip; /* evitar cortar 'Caja' */
+    font-size: 10px; /* más compacto solo en header */
+    padding: 6px 2px; /* reducir padding para ganar ancho efectivo */
+    line-height: 1.2;
   }
   /* Estado - columna para badge */
   td:nth-child(4), th:nth-child(4){ 
-    width: 19%;
-    padding: 8px 2px;
+    width: 20%;
+    padding: 6px 2px; /* header más compacto ayuda a mostrar 'Estado' completo */
+  }
+  /* Evitar truncamiento del encabezado 'Estado' */
+  th:nth-child(4){
+    white-space: nowrap;
+    text-overflow: clip;
+    font-size: 10px;
+    line-height: 1.2;
   }
   /* Acción - columna para botón */
   td:nth-child(5), th:nth-child(5){ 
@@ -440,15 +501,17 @@ h1{ margin: 0 0 12px; font-weight: 650; }
     padding: 8px 2px;
   }
   .estado-badge{ 
-    font-size: 9px; 
-    padding: 4px 6px;
-    white-space: normal;
-    word-wrap: break-word;
+    font-size: 8.5px; 
+    padding: 3px 6px;
+    white-space: normal; /* permitir salto de línea */
     display: inline-block;
     width: 100%;
+    max-width: 100%;
     text-align: center;
     box-sizing: border-box;
     line-height: 1.2;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
   button{ 
     font-size: 10px; 
@@ -459,7 +522,8 @@ h1{ margin: 0 0 12px; font-weight: 650; }
   }
   
   /* Diálogo móvil - reorganizado en columna única */
-  dialog{ max-width: 98vw; max-height: 95vh; margin: 1vh auto; }
+  dialog{ max-width: 98vw; max-height: 95vh; margin: 1vh auto; width: 98vw; box-sizing: border-box; }
+  dialog form{ padding: 12px; box-sizing: border-box; }
   
   /* Contenedor de mensajes de carga móvil - visible solo en móvil */
   .mensaje-carga-movil{ 
@@ -470,12 +534,34 @@ h1{ margin: 0 0 12px; font-weight: 650; }
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
   }
   .mensaje-carga-movil:empty{ display: none; }
   .mensaje-carga-movil .loading-indicator{ padding: 1rem; }
   .mensaje-carga-movil .loading-indicator-icon{ font-size: 2.5rem; }
   .mensaje-carga-movil .loading-indicator-text{ font-size: 1.1rem; font-weight: 600; color: var(--primary); }
   .mensaje-carga-movil .loading-indicator-subtext{ font-size: 0.9rem; color: var(--muted); }
+  
+  /* Cuando hay mensaje de carga, agregar overlay para bloquear interacción */
+  dialog form{ position: relative; }
+  .mensaje-carga-movil:not(:empty) ~ .dialog-container{ 
+    pointer-events: none; 
+    opacity: 0.6; 
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  
+  /* Bloquear scroll cuando el dialog tiene la clase bloqueado */
+  dialog.scroll-bloqueado{
+    overflow: hidden !important;
+  }
+  dialog.scroll-bloqueado form{
+    overflow: hidden !important;
+    touch-action: none !important;
+    overscroll-behavior: none !important;
+  }
   
   /* Estado en diálogo móvil - extra grande y visible */
   dialog .estado-badge{ 
@@ -488,20 +574,21 @@ h1{ margin: 0 0 12px; font-weight: 650; }
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
   .dialog-container{ flex-direction: column; gap: 16px; }
-  .dialog-container > .grid{ order: 1; }
+  .dialog-container > .grid{ order: 1; width: 100%; max-width: 100%; }
   .portada-column{ order: 2; width: 100%; max-width: 100%; }
   .resumen-column{ order: 3; width: 100%; max-width: 100%; }
-  .grid{ gap: 10px; }
-  .grid label{ font-size: 13px; }
-  .grid input, .grid select, .grid textarea{ font-size: 14px; padding: 8px; }
-  .portada-placeholder{ min-height: 200px; }
-  .portada-column img{ max-height: 300px; object-fit: contain; }
-  .resumen-texto{ min-height: 180px; max-height: 250px; }
+  .grid{ gap: 10px; width: 100%; box-sizing: border-box; }
+  .grid label{ font-size: 13px; width: 100%; box-sizing: border-box; }
+  .grid input, .grid select, .grid textarea{ font-size: 14px; padding: 8px; width: 100%; box-sizing: border-box; }
+  .portada-placeholder{ height: 250px; min-height: 250px; max-height: 250px; }
+  .portada-column img{ height: 250px; max-height: 250px; object-fit: contain; }
+  .resumen-texto{ height: 250px; min-height: 250px; max-height: 250px; }
   
   /* Botones de préstamo/devolución en móvil */
-  .prestamo-row{ flex-direction: column; gap: 8px; align-items: stretch; }
-  .prestamo-row label{ width: 100%; }
-  .prestamo-row button{ width: 100%; margin-top: 4px; padding: 12px; font-size: 14px; }
+  .prestamo-row{ display: flex !important; flex-direction: column !important; grid-template-columns: none !important; gap: 8px; align-items: stretch; width: 100%; box-sizing: border-box; }
+  .prestamo-row label{ width: 100%; box-sizing: border-box; }
+  .prestamo-row input{ width: 100%; box-sizing: border-box; }
+  .prestamo-row button{ width: 100%; margin-top: 4px; padding: 12px; font-size: 14px; box-sizing: border-box; height: auto !important; }
   
   /* Help dialog móvil */
   .help-dialog{ max-width: 98vw; max-height: 90vh; }
