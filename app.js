@@ -474,6 +474,8 @@ function mostrarDocumento(markdown, dialogId, contentId) {
   
   content.innerHTML = html;
   dlg.showModal();
+  // Bloquear scroll del body
+  document.body.style.overflow = 'hidden';
 }
 
 $('#btnBuscar').addEventListener('click', cargarLibros);
@@ -661,11 +663,33 @@ async function verLibro(id){
   }
 }
 
-// Listener para desbloquear scroll cuando se cierra el diálogo
+// Listener para desbloquear scroll cuando se cierran los diálogos
 document.addEventListener('DOMContentLoaded', () => {
   const dlg = $('#dlg');
   if (dlg) {
     dlg.addEventListener('close', () => {
+      document.body.style.overflow = '';
+    });
+  }
+  
+  // Desbloquear scroll para diálogos de ayuda, privacidad y licencia
+  const dlgHelp = document.getElementById('dlgHelp');
+  if (dlgHelp) {
+    dlgHelp.addEventListener('close', () => {
+      document.body.style.overflow = '';
+    });
+  }
+  
+  const dlgPrivacy = document.getElementById('dlgPrivacy');
+  if (dlgPrivacy) {
+    dlgPrivacy.addEventListener('close', () => {
+      document.body.style.overflow = '';
+    });
+  }
+  
+  const dlgLicense = document.getElementById('dlgLicense');
+  if (dlgLicense) {
+    dlgLicense.addEventListener('close', () => {
       document.body.style.overflow = '';
     });
   }
