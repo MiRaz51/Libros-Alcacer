@@ -127,4 +127,14 @@ Haz clic en cualquier encabezado de columna para ordenar:
 
 ---
 
-**Colección de Libros Alcácer** - Sistema de gestión familiar
+## Contacto y Soporte
+
+Para consultas, sugerencias o soporte técnico:
+
+- **Desarrollador:** GMR
+- **Correo electrónico:** miraz.gmr51@gmail.com
+
+---
+
+**Colección de Libros Alcácer** - Sistema de gestión familiar  
+**Desarrollado por:** GMR

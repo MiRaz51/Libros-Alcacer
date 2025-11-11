@@ -2,16 +2,18 @@
 
 ## Colección de Libros Alcácer
 
-**Versión 1.0**  
+**Versión 2.0**  
 **Fecha:** Noviembre 2025
 
 ---
 
 ## Derechos de Autor
 
-© 2025 - Todos los derechos reservados.
+© 2025 GMR - Todos los derechos reservados.
 
 Esta aplicación ha sido desarrollada de forma personalizada para la gestión de la colección de libros de la familia Alcácer.
+
+**Desarrollador:** GMR
 
 ## Términos de Uso
 
@@ -66,7 +68,10 @@ Los siguientes servicios pueden ser cotizados según las necesidades del cliente
 
 ## Soporte
 
-Para consultas, sugerencias o solicitudes de cotización, contactar al desarrollador.
+Para consultas, sugerencias o solicitudes de cotización, contactar al desarrollador:
+
+- **Desarrollador:** GMR
+- **Correo electrónico:** miraz.gmr51@gmail.com
 
 ## Modificaciones a esta Licencia
 

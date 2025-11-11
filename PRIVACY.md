@@ -110,7 +110,10 @@ Los nombres registrados en préstamos son responsabilidad del usuario que los in
 
 ## Contacto
 
-Si tienes preguntas sobre esta Política de Privacidad o sobre cómo manejamos tu información, puedes contactar al administrador de la aplicación.
+Si tienes preguntas sobre esta Política de Privacidad o sobre cómo manejamos tu información, puedes contactar al desarrollador:
+
+- **Desarrollador:** GMR
+- **Correo electrónico:** miraz.gmr51@gmail.com
 
 ## Cumplimiento Legal
 
