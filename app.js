@@ -492,6 +492,14 @@ if (btnHelp) btnHelp.addEventListener('click', async ()=> {
   }
 });
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('[PWA] Service Worker registrado:', reg.scope))
+      .catch(err => console.error('[PWA] Error al registrar Service Worker:', err));
+  });
+}
+
 const linkLicense = document.getElementById('linkLicense');
 if (linkLicense) linkLicense.addEventListener('click', async (e)=> {
   e.preventDefault();

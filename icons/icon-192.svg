@@ -1,0 +1,13 @@
+<svg width="192" height="192" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Libros Alcácer logo">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3aa9ff" />
+      <stop offset="100%" stop-color="#28d17c" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="80" fill="#0b111b" />
+  <rect x="64" y="64" width="384" height="384" rx="56" fill="url(#grad)" />
+  <text x="50%" y="55%" font-family="'Segoe UI', 'Arial', sans-serif" font-size="220" font-weight="700" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">
+    LA
+  </text>
+</svg>
