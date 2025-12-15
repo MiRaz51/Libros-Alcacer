@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b111b" />
+  <title>Colección de Libros Alcácer</title>
+  <link rel="manifest" href="assets/manifest.webmanifest" crossorigin="use-credentials" />
+  <link rel="icon" type="image/svg+xml" sizes="192x192" href="icons/icon-192.svg" />
+  <link rel="icon" type="image/svg+xml" sizes="512x512" href="icons/icon-512.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+  <link rel="stylesheet" href="assets/styles.css" />
+
+  <!-- PocketBase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.0/dist/pocketbase.umd.js"></script>
+</head>
+
+<body>
+  <main class="container">
+    <h1>Colección de Libros Alcácer</h1>
+
+    <section class="toolbar">
+      <input id="q" placeholder="Buscar por título" />
+      <select id="selCategoria">
+        <option value="">Todas las categorías</option>
+      </select>
+      <select id="selCaja">
+        <option value="">Todas las cajas</option>
+      </select>
+      <select id="selEstado">
+        <option value="">Todos los estados</option>
+      </select>
+      <button id="btnFavoritos" class="btn-favoritos-toolbar" title="Ver solo favoritos">⭐ Favoritos</button>
+      <button id="btnReset" class="secondary">Limpiar</button>
+      <button id="btnPrint">Imprimir</button>
+      <button id="btnHelp" class="help-btn" title="Guía de Usuario">❓</button>
+    </section>
+
+    <div class="stats-container">
+      <div id="filtrosAplicados" class="filtros-aplicados"></div>
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-label">Total de libros:</span>
+          <span class="stat-value" id="statTotal">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Disponibles:</span>
+          <span class="stat-value stat-disponible" id="statDisponibles">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Prestados:</span>
+          <span class="stat-value stat-prestado" id="statPrestados">0</span>
+        </div>
+      </div>
+    </div>
+
+    <section id="tabla" class="card"></section>
+
+    <dialog id="dlg">
+      <form method="dialog" id="frmLibro">
+        <div class="dialog-header">
+          <h3 id="dlgTitle">Información del Libro</h3>
+          <button type="button" id="btnFavorito" class="btn-favorito" title="Agregar a favoritos">
+            <span class="favorito-icon">☆</span>
+          </button>
+        </div>
+        <div id="mensajeCargaMovil" class="mensaje-carga-movil"></div>
+        <div class="dialog-container">
+          <div class="grid">
+            <label class="full">Título<textarea name="titulo" rows="2" readonly></textarea></label>
+            <label>Autor<input name="autor" readonly /></label>
+            <label>Editorial<input name="editorial" readonly /></label>
+            <label>Año<input name="anio" readonly /></label>
+            <label>ISBN<input name="isbn" readonly /></label>
+            <label>Categoría<input name="categoria" readonly /></label>
+            <label>Caja<input name="caja" readonly /></label>
+            <label class="full">Estado<div id="estadoDisplay" class="estado-display"></div></label>
+            <div class="prestamo-row">
+              <label>Prestado a<input id="prestadoA" type="text" placeholder="Nombre de la persona" /></label>
+              <button type="button" id="btnRegistrarPrestamo" class="secondary">Registrar Préstamo</button>
+            </div>
+            <div class="prestamo-row">
+              <label>Confirmar devolución<input id="confirmarDevolucion" type="text"
+                  placeholder='Escribe "DEVOLVER" para confirmar' /></label>
+              <button type="button" id="btnRegistrarDevolucion" class="danger">Registrar Devolución</button>
+            </div>
+          </div>
+          <div class="portada-column">
+            <h4>Portada</h4>
+            <div id="portadaLibro" class="portada-placeholder">Sin portada</div>
+          </div>
+          <div class="resumen-column">
+            <h4>Resumen</h4>
+            <div id="resumenLibro" class="resumen-texto sin-contenido">Sin resumen</div>
+          </div>
+        </div>
+        <div class="dialog-footer" style="display: flex; gap: 8px;">
+          <button type="button" id="btnAnterior" class="secondary" style="flex: 1;">← Atrás</button>
+          <button type="button" id="btnSiguiente" class="secondary" style="flex: 1;">Siguiente →</button>
+          <button type="button" value="cancel" id="btnCerrarDialog" class="btn-cerrar-footer"
+            style="flex: 1;">Cerrar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dlgHelp" class="help-dialog">
+      <div class="help-header">
+        <h2>📚 Guía de Usuario</h2>
+        <button type="button" class="help-close" id="btnCerrarHelp">✕</button>
+      </div>
+      <div id="helpContent" class="help-content"></div>
+    </dialog>
+
+    <dialog id="dlgLicense" class="help-dialog">
+      <div class="help-header">
+        <h2>📄 Términos de Uso</h2>
+        <button type="button" class="help-close" id="btnCerrarLicense">✕</button>
+      </div>
+      <div id="licenseContent" class="help-content"></div>
+    </dialog>
+
+    <dialog id="dlgPrivacy" class="help-dialog">
+      <div class="help-header">
+        <h2>🔒 Política de Privacidad</h2>
+        <button type="button" class="help-close" id="btnCerrarPrivacy">✕</button>
+      </div>
+      <div id="privacyContent" class="help-content"></div>
+    </dialog>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <p>&copy; 2025 GMR - Colección de Libros Alcácer - Todos los derechos reservados</p>
+        <div class="footer-links">
+          <a href="#" id="linkLicense">Términos de Uso</a>
+          <span class="separator">|</span>
+          <a href="#" id="linkPrivacy">Política de Privacidad</a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Librería para búsqueda difusa (Fuzzy Search) -->
+  <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
+  <!-- Librería para renderizar Markdown -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+
+</html>
