@@ -403,6 +403,14 @@ dialog::backdrop {
   background: rgba(0, 0, 0, 0.5);
 }
 
+.print-footer {
+  display: none;
+}
+
+ .print-only {
+  display: none;
+ }
+
 /* Header del diálogo con título y botón de favoritos */
 .dialog-header {
   display: flex;
@@ -1612,14 +1620,14 @@ textarea:read-only:focus {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 8mm 10mm;
+    margin: 10mm 8mm 18mm 8mm;
   }
 
   body {
     background: #fff;
     color: #000;
-    font-size: 9px;
-    line-height: 1.2;
+    font-size: 14px;
+    line-height: 1.08;
   }
 
   .toolbar,
@@ -1663,7 +1671,7 @@ textarea:read-only:focus {
   table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 8px;
+    font-size: 13px;
   }
 
   thead {
@@ -1673,19 +1681,21 @@ textarea:read-only:focus {
   thead th {
     background: #fff !important;
     color: #000 !important;
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 600;
-    padding: 3px 4px !important;
+    padding: 0 1px 0 3px !important;
+    line-height: 1.02;
   }
 
   th,
   td {
     border: 1px solid #999;
-    padding: 2px 4px;
-  }
-
-  td {
-    line-height: 1.3;
+    padding: 0 1px 0 3px;
+    line-height: 1.02;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    hyphens: auto;
   }
 
   tr {
@@ -1700,29 +1710,54 @@ textarea:read-only:focus {
   /* Ajustar anchos de columnas para optimizar espacio */
   th:nth-child(1),
   td:nth-child(1) {
-    width: 45%;
+    width: 6%;
+    text-align: right;
   }
 
   th:nth-child(2),
   td:nth-child(2) {
-    width: 25%;
+    width: 39%;
   }
 
   th:nth-child(3),
   td:nth-child(3) {
-    width: 10%;
-    text-align: center;
+    width: 25%;
   }
 
   th:nth-child(4),
   td:nth-child(4) {
+    width: 10%;
+    text-align: center;
+  }
+
+  th:nth-child(5),
+  td:nth-child(5) {
     width: 20%;
   }
 
   /* Reducir espacio en badges de estado */
   .estado-badge {
-    padding: 2px 6px !important;
-    font-size: 7px !important;
-    border-radius: 8px !important;
+    padding: 0 2px !important;
+    font-size: 12px !important;
+    line-height: 1;
+    border-radius: 6px !important;
+  }
+
+  .print-only {
+    display: table-cell !important;
+  }
+
+  .print-footer {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 4mm;
+    background: #fff;
+    color: #000;
+    text-align: left;
+    font-size: 10px;
+    padding: 0 1px;
+    z-index: 9999;
   }
 }

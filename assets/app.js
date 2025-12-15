@@ -550,10 +550,11 @@ function renderTabla(items) {
     const el = $('#tabla');
     if (!el) return;
 
-    const rows = items.map(item => {
+    const rows = items.map((item, idx) => {
         const { clase } = analizarEstado(item.estado);
         return `
         <tr>
+            <td class="print-only col-num">${idx + 1}</td>
             <td>${esc(item.titulo)}</td>
             <td>${esc(item.categoria)}</td>
             <td>${esc(item.caja)}</td>
@@ -569,6 +570,7 @@ function renderTabla(items) {
     el.innerHTML = `
     <table>
         <thead><tr>
+            <th class="print-only col-num">Nº</th>
             <th class="sortable" data-col="titulo">Título${sortIcon('titulo')}</th>
             <th class="sortable" data-col="categoria">Categoría${sortIcon('categoria')}</th>
             <th class="sortable" data-col="caja">Caja${sortIcon('caja')}</th>
@@ -891,9 +893,19 @@ function limpiarMensajeCarga() {
 
 function imprimirPagina() {
     const original = document.title;
-    document.title += ` - ${new Date().toLocaleString()}`;
-    window.print();
-    document.title = original;
+    const footerEl = document.querySelector('.print-footer');
+    const originalFooterText = footerEl ? footerEl.textContent : '';
+    try {
+        const fileName = (location && location.pathname)
+            ? (location.pathname.split('/').pop() || 'index.html')
+            : 'index.html';
+        document.title = `${original} | Desarrollado por GMR`;
+        if (footerEl) footerEl.textContent = `Archivo: ${fileName} | Desarrollado por GMR`;
+        window.print();
+    } finally {
+        document.title = original;
+        if (footerEl) footerEl.textContent = originalFooterText;
+    }
 }
 
 // --- Navegación entre libros en el diálogo ---
