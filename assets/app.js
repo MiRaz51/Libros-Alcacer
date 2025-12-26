@@ -42,11 +42,17 @@ async function cargarTodosLosLibros() {
             estado: r.prestado ? r.prestado : 'Disponible'
         }));
 
-        // Inicializar Fuse.js para búsqueda difusa
+        // Inicializar Fuse.js para búsqueda difusa (todavía más estricta)
         const options = {
             keys: ['titulo'],
-            threshold: 0.4, // Tolerancia a errores (0.0 = exacto, 1.0 = coincide todo)
-            ignoreLocation: true // Buscar en cualquier parte del string
+            // Menor threshold = coincidencias más cercanas al texto buscado
+            threshold: 0.12,
+            // Longitud mínima del fragmento que debe coincidir
+            minMatchCharLength: 3,
+            // Menor distancia = penaliza más los caracteres alejados
+            distance: 30,
+            // Mantenemos ignoreLocation para permitir coincidencias en cualquier parte del título
+            ignoreLocation: true
         };
         __fuse = new Fuse(__allBooks, options);
 
