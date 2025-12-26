@@ -1,5 +1,5 @@
 // ========== CONFIGURACIÓN POCKETBASE ==========
-const POCKETBASE_URL = 'https://pocketbase-production-aec1.up.railway.app/';
+const POCKETBASE_URL = 'https://librosalcacer.zeabur.app/';
 const COLLECTION_NAME = 'Libros';
 const pb = new PocketBase(POCKETBASE_URL);
 
