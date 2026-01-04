@@ -1,4 +1,4 @@
-const CACHE_NAME = 'libros-alcacer-cache-v2'; // Nueva versión para forzar actualización
+const CACHE_NAME = 'libros-alcacer-cache-v3'; // Nueva versión para forzar actualización
 const APP_SHELL = [
   './',
   './index.html',
@@ -7,7 +7,9 @@ const APP_SHELL = [
   './assets/manifest.webmanifest',
   './icons/icon-192.svg',
   './icons/icon-512.svg',
-  './assets/offline.html'
+  './assets/offline.html',
+  './assets/offline.css',
+  './assets/offline.js'
 ];
 
 self.addEventListener('install', (event) => {

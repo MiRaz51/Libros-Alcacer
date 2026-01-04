@@ -448,6 +448,12 @@ async function verLibroUI(id) {
     } finally {
         deshabilitarFormulario(false);
         limpiarMensajeCarga();
+
+        // RE-APLICAR la lógica de estado al final, porque deshabilitarFormulario(false) habilita todo
+        if (__currentLibroId) {
+            const item = __currentItems.find(i => i.id === __currentLibroId);
+            if (item) actualizarLogicaEstado(item);
+        }
     }
 }
 
@@ -622,6 +628,9 @@ function renderDetalleLibro(data) {
     // Portada y Resumen
     mostrarPortada(data.urldelaimagen);
     mostrarResumen(data.resumen);
+
+    // Actualizar lógica de préstamos (habilitar/deshabilitar campos)
+    actualizarLogicaEstado(data);
 }
 
 function actualizarLogicaEstado(data) {
@@ -810,8 +819,8 @@ function mostrarResumen(texto) {
 
 function mostrarImagenPantallaCompleta(url) {
     const dlg = document.createElement('dialog');
-    dlg.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.9);border:none;width:100%;height:100%;display:flex;justify-content:center;align-items:center;z-index:9999;`;
-    dlg.innerHTML = `<img src="${url}" style="max-width:95vw;max-height:95vh;object-fit:contain;">`;
+    dlg.className = 'image-viewer';
+    dlg.innerHTML = `<img src="${url}" class="image-viewer__img">`;
     dlg.onclick = () => { dlg.close(); document.body.removeChild(dlg); };
     document.body.appendChild(dlg);
     dlg.showModal();
@@ -891,7 +900,7 @@ function setupDialogListeners() {
 
 function mostrarMensajeCarga(msg, sub) {
     const c = $('#portadaLibro');
-    if (c) c.innerHTML = `<div style="text-align:center;padding:20px"><div>⏳</div><div>${msg}</div><small>${sub}</small></div>`;
+    if (c) c.innerHTML = `<div class="portada-loading"><div>⏳</div><div>${msg}</div><small>${sub}</small></div>`;
 }
 function limpiarMensajeCarga() {
     // Se limpia automáticamente al mostrar portada
