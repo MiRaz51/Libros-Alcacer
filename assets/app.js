@@ -86,7 +86,15 @@ function filtrarLibrosLocalmente({ q = '', cat = '', caja = '', estado = '' } = 
     // 2. Filtros de selectores (Exactos)
     if (cat) resultados = resultados.filter(b => b.categoria === cat);
     if (caja) resultados = resultados.filter(b => b.caja === caja);
-    if (estado) resultados = resultados.filter(b => b.estado === estado);
+    if (estado) {
+        if (estado === 'Prestados') {
+            // Caso especial: mostrar todos los que tengan algo en 'prestado'
+            resultados = resultados.filter(b => b.prestado);
+        } else {
+            // Caso normal: filtro exacto por el valor del estado (Disponible o nombre de persona)
+            resultados = resultados.filter(b => b.estado === estado);
+        }
+    }
 
     // 3. Filtro de favoritos (si está activo)
     if (__filtrandoFavoritos) {
@@ -759,8 +767,38 @@ function actualizarSelects(data, selectedValues = {}) {
     };
 
     update('selCategoria', data.categorias, selectedValues.cat);
-    update('selCaja', data.cajas, selectedValues.caja);
-    update('selEstado', data.estados, selectedValues.estado);
+    // Para el estado, inyectamos la opción especial "Prestados (Todos)" con el orden solicitado
+    const updateEstado = (id, items = [], currentVal) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        const defaultText = el.dataset.defaultText || 'Todos los estados';
+        el.dataset.defaultText = defaultText;
+
+        // 1. Empezamos con la opción por defecto (Todos)
+        let optionsHtml = `<option value="">${defaultText}</option>`;
+
+        // 2. Extraemos "Disponible" de la lista para posicionarlo primero
+        const hasDisponible = items.includes('Disponible');
+        const listadoUsuarios = items.filter(v => v !== 'Disponible');
+
+        if (hasDisponible) {
+            optionsHtml += `<option value="Disponible">Disponible</option>`;
+        }
+
+        // 3. Añadimos la opción virtual "Prestados (Todos)"
+        optionsHtml += `<option value="Prestados">Prestados (Todos)</option>`;
+
+        // 4. Añadimos el resto (nombres de personas) que ya vienen ordenados
+        optionsHtml += listadoUsuarios.map(v => `<option value="${v}">${v}</option>`).join('');
+
+        el.innerHTML = optionsHtml;
+
+        if (currentVal) {
+            el.value = currentVal;
+        }
+    };
+    updateEstado('selEstado', data.estados, selectedValues.estado);
 }
 
 function mostrarCargandoEnSelects(origin) {
